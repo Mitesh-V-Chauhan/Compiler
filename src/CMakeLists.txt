@@ -5,6 +5,9 @@ add_library(nova_core
     diagnostics/diagnostics.cpp
     parser/parser.cpp
     semantic/semantic_analyzer.cpp
+    ir/ir.cpp
+    ir/ir_generator.cpp
+    optimizer/optimizer.cpp
 )
 target_include_directories(nova_core PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
