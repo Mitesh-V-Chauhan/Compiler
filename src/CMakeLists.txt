@@ -1,6 +1,9 @@
 add_library(nova_core
     lexer/lexer.cpp
     lexer/token.cpp
+    ast/ast_dump.cpp
+    diagnostics/diagnostics.cpp
+    parser/parser.cpp
 )
 target_include_directories(nova_core PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
