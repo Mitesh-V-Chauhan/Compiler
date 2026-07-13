@@ -1,6 +1,7 @@
 add_executable(nova_tests
     lexer/lexer_test.cpp
     parser/parser_test.cpp
+    semantic/semantic_test.cpp
 )
 
 target_link_libraries(nova_tests PRIVATE
