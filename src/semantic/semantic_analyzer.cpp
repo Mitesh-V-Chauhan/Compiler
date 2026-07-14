@@ -238,6 +238,19 @@ void SemanticAnalyzer::visit(UnaryExpression& node) {
             diagnostics_.reportError(node.op.location, "Logical NOT requires boolean type.");
         }
         setNodeType(&node, Type::getBool());
+    } else if (node.op.type == TokenType::Ampersand) {
+        auto ptr_type = std::make_shared<Type>(type->kind, type->name);
+        ptr_type->pointer_depth = type->pointer_depth + 1;
+        setNodeType(&node, ptr_type);
+    } else if (node.op.type == TokenType::Star) {
+        if (type->pointer_depth == 0) {
+            diagnostics_.reportError(node.op.location, "Cannot dereference non-pointer type.");
+            setNodeType(&node, Type::getUnknown());
+        } else {
+            auto deref_type = std::make_shared<Type>(type->kind, type->name);
+            deref_type->pointer_depth = type->pointer_depth - 1;
+            setNodeType(&node, deref_type);
+        }
     } else {
         setNodeType(&node, Type::getUnknown());
     }
@@ -338,10 +351,14 @@ std::shared_ptr<Type> SemanticAnalyzer::resolveType(const TypeIdentifier& type_i
     }
     
     auto base_type = it->second;
-    if (type_id.is_array) {
-        auto arr_type = std::make_shared<Type>(TypeKind::Array);
-        arr_type->element_type = base_type;
-        return arr_type;
+    if (type_id.pointer_depth > 0 || type_id.is_array) {
+        auto derived_type = std::make_shared<Type>(type_id.is_array ? TypeKind::Array : base_type->kind);
+        derived_type->name = base_type->name;
+        derived_type->pointer_depth = type_id.pointer_depth;
+        if (type_id.is_array) {
+            derived_type->element_type = base_type;
+        }
+        return derived_type;
     }
     return base_type;
 }

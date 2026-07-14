@@ -34,6 +34,7 @@ const char* tokenTypeToString(TokenType type) {
         case TokenType::Star: return "Star";
         case TokenType::Slash: return "Slash";
         case TokenType::Percent: return "Percent";
+        case TokenType::Ampersand: return "Ampersand";
         case TokenType::EqEq: return "EqEq";
         case TokenType::BangEq: return "BangEq";
         case TokenType::Greater: return "Greater";

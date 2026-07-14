@@ -148,13 +148,28 @@ void CodeGen::generateInstruction(const IRInstruction& instr) {
             out_ << "    jmp " << instr.arg2.name << "\n";
             break;
             
-        case IROp::Param:
+        case IROp::Param: {
+            loadValue(instr.arg1, "%rax");
             if (arg_count_ < arg_regs_.size()) {
-                loadValue(instr.arg1, arg_regs_[arg_count_]);
+                out_ << "    movq %rax, " << arg_regs_[arg_count_] << "\n";
+                arg_count_++;
+            } else {
+                out_ << "    pushq %rax\n";
                 arg_count_++;
             }
             break;
-            
+        }
+
+        case IROp::GetParam: {
+            int index = std::stoi(instr.arg1.name);
+            if (index < arg_regs_.size()) {
+                storeValue(instr.dest, arg_regs_[index]);
+            } else {
+                // Not supported yet
+            }
+            break;
+        }
+
         case IROp::Call:
             out_ << "    call _" << instr.arg1.name << "\n";
             storeValue(instr.dest, "%rax");
@@ -205,6 +220,12 @@ void CodeGen::generateInstruction(const IRInstruction& instr) {
             loadValue(instr.arg2, "%rcx");
             loadValue(instr.arg1, "%rax");
             out_ << "    movq %rcx, (%rax)\n";
+            break;
+        }
+            
+        case IROp::AddressOf: {
+            loadAddress(instr.arg1, "%rax");
+            storeValue(instr.dest, "%rax");
             break;
         }
             

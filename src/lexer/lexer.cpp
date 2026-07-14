@@ -76,7 +76,7 @@ Token Lexer::nextToken() {
         case '>': return match('=') ? makeToken(TokenType::GreaterEq) : makeToken(TokenType::Greater);
         case '&':
             if (match('&')) return makeToken(TokenType::AndAnd);
-            return makeErrorToken("Unexpected character '&'");
+            return makeToken(TokenType::Ampersand);
         case '|':
             if (match('|')) return makeToken(TokenType::OrOr);
             return makeErrorToken("Unexpected character '|'");

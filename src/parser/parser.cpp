@@ -163,12 +163,17 @@ std::unique_ptr<EnumNode> Parser::enumDeclaration() {
 
 // Types
 std::optional<TypeIdentifier> Parser::parseType() {
+    int ptr_depth = 0;
+    while (match({TokenType::Star})) {
+        ptr_depth++;
+    }
+
     if (match({TokenType::Int, TokenType::Float, TokenType::Bool, TokenType::String, TokenType::Char, TokenType::Identifier})) {
-        return TypeIdentifier{previous().lexeme, false};
+        return TypeIdentifier{previous().lexeme, false, ptr_depth};
     }
     if (match({TokenType::LBracket})) {
         if (match({TokenType::Int, TokenType::Float, TokenType::Bool, TokenType::String, TokenType::Char, TokenType::Identifier})) {
-            TypeIdentifier t = {previous().lexeme, true};
+            TypeIdentifier t = {previous().lexeme, true, ptr_depth};
             consume(TokenType::RBracket, "Expected ']' after array type.");
             return t;
         }
@@ -397,7 +402,7 @@ std::unique_ptr<Expression> Parser::factor() {
 }
 
 std::unique_ptr<Expression> Parser::unary() {
-    if (match({TokenType::Bang, TokenType::Minus})) {
+    if (match({TokenType::Bang, TokenType::Minus, TokenType::Star, TokenType::Ampersand})) {
         Token op = previous();
         auto right = unary();
         return std::make_unique<UnaryExpression>(op, std::move(right));

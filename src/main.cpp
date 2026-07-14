@@ -49,6 +49,20 @@ int main(int argc, char** argv) {
     IRGenerator ir_gen(&semantic);
     auto program = ir_gen.generate(*ast);
     
+    std::cout << "--- IR ---" << std::endl;
+    for (const auto& f : program.functions) {
+        std::cout << "fn " << f.name << ":" << std::endl;
+        for (const auto& b : f.blocks) {
+            std::cout << b.label << ":" << std::endl;
+            for (const auto& i : b.instructions) {
+                std::cout << "  ";
+                if (i.dest.type != IRValue::Type::None) std::cout << i.dest.name << " = ";
+                std::cout << (int)i.op << " " << i.arg1.name << " " << i.arg2.name << std::endl;
+            }
+        }
+    }
+    std::cout << "----------" << std::endl;
+    
     Optimizer opt;
     opt.optimize(program);
     

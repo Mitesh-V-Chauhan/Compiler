@@ -78,13 +78,15 @@ bool Optimizer::constantPropagation(IRFunction& func) {
     for (auto& block : func.blocks) {
         constants.clear();
         for (auto& instr : block.instructions) {
-            if ((instr.arg1.type == IRValue::Type::Temp || instr.arg1.type == IRValue::Type::Variable) && constants.count(instr.arg1.name)) {
-                instr.arg1 = {IRValue::Type::Constant, constants[instr.arg1.name]};
-                changed = true;
-            }
-            if ((instr.arg2.type == IRValue::Type::Temp || instr.arg2.type == IRValue::Type::Variable) && constants.count(instr.arg2.name)) {
-                instr.arg2 = {IRValue::Type::Constant, constants[instr.arg2.name]};
-                changed = true;
+            if (instr.op != IROp::AddressOf) {
+                if ((instr.arg1.type == IRValue::Type::Temp || instr.arg1.type == IRValue::Type::Variable) && constants.count(instr.arg1.name)) {
+                    instr.arg1 = {IRValue::Type::Constant, constants[instr.arg1.name]};
+                    changed = true;
+                }
+                if ((instr.arg2.type == IRValue::Type::Temp || instr.arg2.type == IRValue::Type::Variable) && constants.count(instr.arg2.name)) {
+                    instr.arg2 = {IRValue::Type::Constant, constants[instr.arg2.name]};
+                    changed = true;
+                }
             }
             
             if (instr.op == IROp::Assign && instr.arg1.type == IRValue::Type::Constant && 

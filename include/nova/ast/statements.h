@@ -18,6 +18,7 @@ public:
 struct TypeIdentifier {
     std::string_view name;
     bool is_array = false;
+    int pointer_depth = 0;
 };
 
 class LetStmt : public Statement {

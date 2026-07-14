@@ -11,9 +11,9 @@ enum class IROp {
     And, Or, Not, Neg,
     Assign,
     Jump, Branch,
-    Call, Return, Param,
+    Call, Return, Param, GetParam,
     Alloc,
-    Load, Store, GetElementPtr
+    Load, Store, GetElementPtr, AddressOf
 };
 
 struct IRValue {

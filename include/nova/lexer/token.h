@@ -20,7 +20,7 @@ enum class TokenType {
     True, False,
 
     // Operators
-    Plus, Minus, Star, Slash, Percent, // + - * / %
+    Plus, Minus, Star, Slash, Percent, Ampersand, // + - * / %
     EqEq, BangEq, Greater, Less, GreaterEq, LessEq, // == != > < >= <=
     Eq, // =
     AndAnd, OrOr, Bang, // && || !

@@ -20,11 +20,13 @@ public:
     std::vector<std::shared_ptr<Type>> param_types;
     
     std::vector<std::pair<std::string, std::shared_ptr<Type>>> struct_fields; // For Struct
+    
+    int pointer_depth = 0;
 
     Type(TypeKind k, std::string n = "") : kind(k), name(std::move(n)) {}
     
     bool operator==(const Type& other) const {
-        if (kind != other.kind) return false;
+        if (kind != other.kind || pointer_depth != other.pointer_depth) return false;
         if (kind == TypeKind::Array) return *element_type == *other.element_type;
         if (kind == TypeKind::Struct) return name == other.name;
         if (kind == TypeKind::Function) {

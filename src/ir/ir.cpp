@@ -31,10 +31,12 @@ std::string IRInstruction::toString() const {
         case IROp::Call: res += "call " + arg1.toString(); return res;
         case IROp::Return: res += "ret " + arg1.toString(); return res;
         case IROp::Param: res += "param " + arg1.toString(); return res;
+        case IROp::GetParam: res += "getparam " + arg1.toString(); return res;
         case IROp::Alloc: res += "alloc " + dest.toString(); return res;
         case IROp::Load: res += "load " + arg1.toString(); break;
         case IROp::Store: res += "store " + arg1.toString() + ", " + arg2.toString(); return res;
         case IROp::GetElementPtr: res += "gep " + arg1.toString() + ", " + arg2.toString(); break;
+        case IROp::AddressOf: res += "addressof " + arg1.toString(); break;
     }
     
     if (arg1.type != IRValue::Type::None) res += arg1.toString();

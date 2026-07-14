@@ -52,6 +52,13 @@ void IRGenerator::visit(FunctionNode& node) {
     
     enterBlock(newLabel("entry"));
     
+    for (size_t i = 0; i < node.params.size(); ++i) {
+        IRValue dest{IRValue::Type::Variable, std::string(node.params[i].name.lexeme)};
+        int size = 8;
+        emit(IROp::Alloc, dest, {IRValue::Type::Constant, std::to_string(size)});
+        emit(IROp::GetParam, dest, {IRValue::Type::Constant, std::to_string(i)});
+    }
+    
     node.body->accept(*this);
     
     current_func_ = nullptr;
@@ -205,6 +212,8 @@ void IRGenerator::visit(BinaryExpression& node) {
         
         if (dynamic_cast<StructAccessNode*>(node.left.get())) {
             emit(IROp::Store, {}, left, right); // Store right into address left
+        } else if (auto unary = dynamic_cast<UnaryExpression*>(node.left.get()); unary && unary->op.type == TokenType::Star) {
+            emit(IROp::Store, {}, left, right); // Store right into pointer left
         } else {
             emit(IROp::Assign, left, right);
         }
@@ -242,6 +251,27 @@ void IRGenerator::visit(BinaryExpression& node) {
 }
 
 void IRGenerator::visit(UnaryExpression& node) {
+    if (node.op.type == TokenType::Ampersand) {
+        node.operand->accept(*this);
+        IRValue dest = newTemp();
+        emit(IROp::AddressOf, dest, last_value_);
+        last_value_ = dest;
+        return;
+    }
+    
+    if (node.op.type == TokenType::Star) {
+        node.operand->accept(*this);
+        IRValue ptr = last_value_;
+        if (lvalue_mode_) {
+            last_value_ = ptr;
+        } else {
+            IRValue val = newTemp();
+            emit(IROp::Load, val, ptr);
+            last_value_ = val;
+        }
+        return;
+    }
+
     node.operand->accept(*this);
     IRValue operand = last_value_;
     
