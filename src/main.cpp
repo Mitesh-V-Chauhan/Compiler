@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     
-    IRGenerator ir_gen;
+    IRGenerator ir_gen(&semantic);
     auto program = ir_gen.generate(*ast);
     
     Optimizer opt;

@@ -7,8 +7,11 @@
 
 namespace nova {
 
+class SemanticAnalyzer;
+
 class IRGenerator : public ASTVisitor {
 public:
+    explicit IRGenerator(SemanticAnalyzer* semantic = nullptr) : semantic_(semantic) {}
     IRProgram generate(ProgramNode& program);
     
     void visit(ProgramNode& node) override;
@@ -36,9 +39,12 @@ public:
     void visit(EnumNode& node) override;
 
 private:
+    SemanticAnalyzer* semantic_;
     IRProgram program_;
     IRFunction* current_func_ = nullptr;
     BasicBlock* current_block_ = nullptr;
+    
+    bool lvalue_mode_ = false;
     
     int temp_counter_ = 0;
     int label_counter_ = 0;

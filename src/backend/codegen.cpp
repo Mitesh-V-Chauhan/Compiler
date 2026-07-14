@@ -17,7 +17,7 @@ int CodeGen::getStackOffset(const std::string& name) {
     if (it != stack_offsets_.end()) {
         return it->second;
     }
-    current_stack_offset_ -= 8;
+    current_stack_offset_ -= 8; // Default 8 bytes for undeclared temps
     stack_offsets_[name] = current_stack_offset_;
     return current_stack_offset_;
 }
@@ -28,6 +28,14 @@ std::string CodeGen::loadValue(const IRValue& val, const std::string& reg) {
     } else if (val.type == IRValue::Type::Variable || val.type == IRValue::Type::Temp) {
         int offset = getStackOffset(val.name);
         out_ << "    movq " << offset << "(%rbp), " << reg << "\n";
+    }
+    return reg;
+}
+
+std::string CodeGen::loadAddress(const IRValue& val, const std::string& reg) {
+    if (val.type == IRValue::Type::Variable || val.type == IRValue::Type::Temp) {
+        int offset = getStackOffset(val.name);
+        out_ << "    leaq " << offset << "(%rbp), " << reg << "\n";
     }
     return reg;
 }
@@ -163,8 +171,42 @@ void CodeGen::generateInstruction(const IRInstruction& instr) {
             out_ << "    ret\n";
             break;
             
-        case IROp::Alloc:
+        case IROp::Alloc: {
+            int size = 8;
+            if (instr.arg1.type == IRValue::Type::Constant) {
+                size = std::stoi(instr.arg1.name);
+            }
+            if (size % 8 != 0) size += 8 - (size % 8);
+            current_stack_offset_ -= size;
+            stack_offsets_[instr.dest.name] = current_stack_offset_;
             break;
+        }
+            
+        case IROp::GetElementPtr: {
+            loadAddress(instr.arg1, "%rax");
+            if (instr.arg2.type == IRValue::Type::Constant) {
+                out_ << "    addq $" << instr.arg2.name << ", %rax\n";
+            } else {
+                loadValue(instr.arg2, "%rcx");
+                out_ << "    addq %rcx, %rax\n";
+            }
+            storeValue(instr.dest, "%rax");
+            break;
+        }
+            
+        case IROp::Load: {
+            loadValue(instr.arg1, "%rax");
+            out_ << "    movq (%rax), %rcx\n";
+            storeValue(instr.dest, "%rcx");
+            break;
+        }
+            
+        case IROp::Store: {
+            loadValue(instr.arg2, "%rcx");
+            loadValue(instr.arg1, "%rax");
+            out_ << "    movq %rcx, (%rax)\n";
+            break;
+        }
             
         default:
             break;

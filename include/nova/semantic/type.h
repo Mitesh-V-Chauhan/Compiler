@@ -18,6 +18,8 @@ public:
     
     std::shared_ptr<Type> return_type = nullptr;  // For Function
     std::vector<std::shared_ptr<Type>> param_types;
+    
+    std::vector<std::pair<std::string, std::shared_ptr<Type>>> struct_fields; // For Struct
 
     Type(TypeKind k, std::string n = "") : kind(k), name(std::move(n)) {}
     

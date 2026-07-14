@@ -1,4 +1,6 @@
 #include "nova/ir/ir_generator.h"
+#include "nova/semantic/semantic_analyzer.h"
+#include "nova/backend/memory_layout.h"
 #include <iostream>
 
 namespace nova {
@@ -63,11 +65,23 @@ void IRGenerator::visit(BlockStmt& node) {
 }
 
 void IRGenerator::visit(LetStmt& node) {
-    IRValue var = {IRValue::Type::Variable, std::string(node.identifier.lexeme)};
-    emit(IROp::Alloc, var);
     if (node.initializer) {
         node.initializer->accept(*this);
-        emit(IROp::Assign, var, last_value_);
+        IRValue init_val = last_value_;
+        
+        IRValue dest{IRValue::Type::Variable, std::string(node.identifier.lexeme)};
+        
+        int size = 8;
+        if (semantic_) {
+            auto type = semantic_->getNodeType(node.initializer.get());
+            size = MemoryLayout::getSize(type);
+        }
+        
+        emit(IROp::Alloc, dest, {IRValue::Type::Constant, std::to_string(size)});
+        emit(IROp::Assign, dest, init_val);
+    } else {
+        IRValue dest{IRValue::Type::Variable, std::string(node.identifier.lexeme)};
+        emit(IROp::Alloc, dest, {IRValue::Type::Constant, "8"});
     }
 }
 
@@ -179,17 +193,30 @@ void IRGenerator::visit(ContinueStmt& node) {
 }
 
 void IRGenerator::visit(BinaryExpression& node) {
+    if (node.op.type == TokenType::Eq) {
+        bool was_lvalue = lvalue_mode_;
+        lvalue_mode_ = true;
+        node.left->accept(*this);
+        IRValue left = last_value_;
+        lvalue_mode_ = was_lvalue;
+        
+        node.right->accept(*this);
+        IRValue right = last_value_;
+        
+        if (dynamic_cast<StructAccessNode*>(node.left.get())) {
+            emit(IROp::Store, {}, left, right); // Store right into address left
+        } else {
+            emit(IROp::Assign, left, right);
+        }
+        last_value_ = left;
+        return;
+    }
+    
     node.left->accept(*this);
     IRValue left = last_value_;
     
     node.right->accept(*this);
     IRValue right = last_value_;
-    
-    if (node.op.type == TokenType::Eq) {
-        emit(IROp::Assign, left, right);
-        last_value_ = left;
-        return;
-    }
     
     IROp op = IROp::Add;
     switch (node.op.type) {
@@ -246,8 +273,36 @@ void IRGenerator::visit(CallNode& node) {
 }
 
 // Stubs for now
-void IRGenerator::visit(ArrayNode& node) {}
-void IRGenerator::visit(StructAccessNode& node) {}
+void IRGenerator::visit(ArrayNode& node) {
+    // Array literals not fully implemented for codegen yet, just return a temp
+    last_value_ = newTemp();
+}
+
+void IRGenerator::visit(StructAccessNode& node) {
+    node.object->accept(*this);
+    IRValue base = last_value_;
+    
+    int offset = 0;
+    if (semantic_) {
+        auto obj_type = semantic_->getNodeType(node.object.get());
+        if (obj_type && obj_type->kind == TypeKind::Struct) {
+            auto layout = MemoryLayout::calculateStructLayout(obj_type->struct_fields);
+            offset = layout.field_offsets[std::string(node.field.lexeme)];
+        }
+    }
+    
+    IRValue addr = newTemp();
+    emit(IROp::GetElementPtr, addr, base, {IRValue::Type::Constant, std::to_string(offset)});
+    
+    if (lvalue_mode_) {
+        last_value_ = addr;
+    } else {
+        IRValue val = newTemp();
+        emit(IROp::Load, val, addr);
+        last_value_ = val;
+    }
+}
+
 void IRGenerator::visit(StructNode& node) {}
 void IRGenerator::visit(EnumNode& node) {}
 

@@ -24,6 +24,7 @@ private:
     
     int getStackOffset(const std::string& name);
     std::string loadValue(const IRValue& val, const std::string& reg);
+    std::string loadAddress(const IRValue& val, const std::string& reg);
     void storeValue(const IRValue& val, const std::string& reg);
     
     const std::vector<std::string> arg_regs_ = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};

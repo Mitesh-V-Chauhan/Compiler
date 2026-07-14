@@ -12,7 +12,8 @@ enum class IROp {
     Assign,
     Jump, Branch,
     Call, Return, Param,
-    Alloc
+    Alloc,
+    Load, Store, GetElementPtr
 };
 
 struct IRValue {

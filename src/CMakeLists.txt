@@ -9,6 +9,7 @@ add_library(nova_core
     ir/ir_generator.cpp
     optimizer/optimizer.cpp
     backend/codegen.cpp
+    backend/memory_layout.cpp
 )
 target_include_directories(nova_core PUBLIC ${CMAKE_SOURCE_DIR}/include)
 

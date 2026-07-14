@@ -348,10 +348,34 @@ std::shared_ptr<Type> SemanticAnalyzer::resolveType(const TypeIdentifier& type_i
 
 // Stubs for now
 void SemanticAnalyzer::visit(ArrayNode& node) { setNodeType(&node, Type::getUnknown()); }
-void SemanticAnalyzer::visit(StructAccessNode& node) { setNodeType(&node, Type::getUnknown()); }
+void SemanticAnalyzer::visit(StructAccessNode& node) {
+    node.object->accept(*this);
+    auto obj_type = getNodeType(node.object.get());
+    if (obj_type && obj_type->kind == TypeKind::Struct) {
+        for (const auto& field : obj_type->struct_fields) {
+            if (field.first == node.field.lexeme) {
+                setNodeType(&node, field.second);
+                return;
+            }
+        }
+        diagnostics_.reportError(node.field.location, "Struct has no such field: " + std::string(node.field.lexeme));
+    } else {
+        diagnostics_.reportError(node.object->location, "Cannot access field of non-struct type.");
+    }
+    setNodeType(&node, Type::getUnknown());
+}
 void SemanticAnalyzer::visit(BreakStmt& node) {}
 void SemanticAnalyzer::visit(ContinueStmt& node) {}
-void SemanticAnalyzer::visit(StructNode& node) {}
+void SemanticAnalyzer::visit(StructNode& node) {
+    auto it = defined_types_.find(node.name.lexeme);
+    if (it != defined_types_.end()) {
+        auto struct_type = it->second;
+        for (const auto& field : node.fields) {
+            auto field_type = resolveType(field.type, field.name.location);
+            struct_type->struct_fields.push_back({std::string(field.name.lexeme), field_type});
+        }
+    }
+}
 void SemanticAnalyzer::visit(EnumNode& node) {}
 
 } // namespace nova
