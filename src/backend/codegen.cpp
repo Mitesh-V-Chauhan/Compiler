@@ -10,6 +10,33 @@ void CodeGen::generate(const IRProgram& program) {
     for (const auto& func : program.functions) {
         generateFunction(func);
     }
+    
+    if (!program.strings.empty()) {
+#ifdef __APPLE__
+        out_ << ".section __TEXT,__cstring,cstring_literals\n";
+#else
+        out_ << ".section .rodata\n";
+#endif
+        for (const auto& str : program.strings) {
+            out_ << str.first << ":\n";
+            out_ << "    .asciz \"" << escapeString(str.second) << "\"\n";
+        }
+    }
+}
+
+std::string CodeGen::escapeString(const std::string& str) {
+    std::string res;
+    for (char c : str) {
+        switch (c) {
+            case '\n': res += "\\n"; break;
+            case '\r': res += "\\r"; break;
+            case '\t': res += "\\t"; break;
+            case '\"': res += "\\\""; break;
+            case '\\': res += "\\\\"; break;
+            default: res += c; break;
+        }
+    }
+    return res;
 }
 
 int CodeGen::getStackOffset(const std::string& name) {
@@ -28,6 +55,8 @@ std::string CodeGen::loadValue(const IRValue& val, const std::string& reg) {
     } else if (val.type == IRValue::Type::Variable || val.type == IRValue::Type::Temp) {
         int offset = getStackOffset(val.name);
         out_ << "    movq " << offset << "(%rbp), " << reg << "\n";
+    } else if (val.type == IRValue::Type::Label) {
+        out_ << "    leaq " << val.name << "(%rip), " << reg << "\n";
     }
     return reg;
 }
@@ -171,6 +200,7 @@ void CodeGen::generateInstruction(const IRInstruction& instr) {
         }
 
         case IROp::Call:
+            out_ << "    xor %eax, %eax\n"; // System V ABI: zero %al for variadic functions
             out_ << "    call _" << instr.arg1.name << "\n";
             storeValue(instr.dest, "%rax");
             arg_count_ = 0;

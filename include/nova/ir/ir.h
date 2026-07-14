@@ -49,6 +49,7 @@ public:
 class IRProgram {
 public:
     std::vector<IRFunction> functions;
+    std::vector<std::pair<std::string, std::string>> strings;
     
     void dump() const;
 };

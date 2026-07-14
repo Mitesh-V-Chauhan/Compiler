@@ -22,6 +22,8 @@ private:
     std::unordered_map<std::string, int> stack_offsets_;
     int current_stack_offset_ = 0;
     
+    std::string escapeString(const std::string& str);
+    
     int getStackOffset(const std::string& name);
     std::string loadValue(const IRValue& val, const std::string& reg);
     std::string loadAddress(const IRValue& val, const std::string& reg);

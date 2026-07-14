@@ -82,6 +82,8 @@ void SemanticAnalyzer::visit(FunctionNode& node) {
     Symbol* sym = current_scope_->lookup(node.name.lexeme);
     if (!sym) return; // Should be handled in pass 1
     
+    if (node.is_extern) return; // Extern functions have no body to analyze
+    
     enterScope();
     current_return_type_ = sym->type->return_type;
     

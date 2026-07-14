@@ -83,14 +83,18 @@ void Parser::synchronize() {
 
 // Declarations
 std::unique_ptr<ASTNode> Parser::declaration() {
-    if (match({TokenType::Fn})) return functionDeclaration();
+    if (match({TokenType::Extern})) {
+        consume(TokenType::Fn, "Expected 'fn' after 'extern'.");
+        return functionDeclaration(true);
+    }
+    if (match({TokenType::Fn})) return functionDeclaration(false);
     if (match({TokenType::Struct})) return structDeclaration();
     if (match({TokenType::Enum})) return enumDeclaration();
     if (match({TokenType::Let})) return letStatement();
     return statement();
 }
 
-std::unique_ptr<FunctionNode> Parser::functionDeclaration() {
+std::unique_ptr<FunctionNode> Parser::functionDeclaration(bool is_extern) {
     Token name = consume(TokenType::Identifier, "Expected function name.");
     consume(TokenType::LParen, "Expected '(' after function name.");
     
@@ -119,10 +123,15 @@ std::unique_ptr<FunctionNode> Parser::functionDeclaration() {
         returnType = std::make_unique<TypeIdentifier>(*type);
     }
     
-    consume(TokenType::LBrace, "Expected '{' before function body.");
-    auto body = blockStatement();
+    std::unique_ptr<BlockStmt> body = nullptr;
+    if (is_extern) {
+        consume(TokenType::Semicolon, "Expected ';' after extern function declaration.");
+    } else {
+        consume(TokenType::LBrace, "Expected '{' before function body.");
+        body = blockStatement();
+    }
     
-    return std::make_unique<FunctionNode>(name, std::move(params), std::move(returnType), std::move(body));
+    return std::make_unique<FunctionNode>(name, std::move(params), std::move(returnType), std::move(body), is_extern);
 }
 
 std::unique_ptr<StructNode> Parser::structDeclaration() {

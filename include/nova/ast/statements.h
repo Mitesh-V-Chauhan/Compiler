@@ -95,10 +95,11 @@ public:
     };
     std::vector<Param> params;
     std::unique_ptr<TypeIdentifier> return_type; // null if void
-    std::unique_ptr<BlockStmt> body;
+    std::unique_ptr<BlockStmt> body; // null if extern
+    bool is_extern;
     
-    FunctionNode(Token n, std::vector<Param> p, std::unique_ptr<TypeIdentifier> rt, std::unique_ptr<BlockStmt> b)
-        : name(n), params(std::move(p)), return_type(std::move(rt)), body(std::move(b)) { location = name.location; }
+    FunctionNode(Token n, std::vector<Param> p, std::unique_ptr<TypeIdentifier> rt, std::unique_ptr<BlockStmt> b, bool is_ext = false)
+        : name(n), params(std::move(p)), return_type(std::move(rt)), body(std::move(b)), is_extern(is_ext) { location = name.location; }
     void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
 

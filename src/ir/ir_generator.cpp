@@ -45,6 +45,8 @@ void IRGenerator::visit(ProgramNode& node) {
 }
 
 void IRGenerator::visit(FunctionNode& node) {
+    if (node.is_extern) return;
+    
     IRFunction func;
     func.name = std::string(node.name.lexeme);
     program_.functions.push_back(std::move(func));
@@ -284,7 +286,34 @@ void IRGenerator::visit(UnaryExpression& node) {
 }
 
 void IRGenerator::visit(LiteralNode& node) {
-    last_value_ = {IRValue::Type::Constant, std::string(node.token.lexeme)};
+    if (node.token.type == TokenType::StringLiteral) {
+        std::string val = std::string(node.token.lexeme);
+        if (val.size() >= 2) val = val.substr(1, val.size() - 2);
+        
+        std::string unescaped;
+        for (size_t i = 0; i < val.size(); ++i) {
+            if (val[i] == '\\' && i + 1 < val.size()) {
+                char next = val[i+1];
+                if (next == 'n') unescaped += '\n';
+                else if (next == 't') unescaped += '\t';
+                else if (next == 'r') unescaped += '\r';
+                else if (next == '\\') unescaped += '\\';
+                else if (next == '"') unescaped += '"';
+                else unescaped += val[i];
+                i++;
+            } else {
+                unescaped += val[i];
+            }
+        }
+        val = unescaped;
+        
+        std::string label = ".L.str" + std::to_string(program_.strings.size());
+        program_.strings.push_back({label, val});
+        
+        last_value_ = {IRValue::Type::Label, label};
+    } else {
+        last_value_ = {IRValue::Type::Constant, std::string(node.token.lexeme)};
+    }
 }
 
 void IRGenerator::visit(IdentifierNode& node) {

@@ -8,7 +8,7 @@ namespace nova {
 enum class TokenType {
     // Keywords
     Int, Float, Bool, String, Char,
-    Let, Fn, If, Else, While, For, Break, Continue, Return,
+    Let, Fn, If, Else, While, For, Break, Continue, Return, Extern,
     Struct, Enum, Module, Import,
 
     // Identifiers and Literals

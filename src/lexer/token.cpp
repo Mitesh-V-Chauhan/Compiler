@@ -16,8 +16,8 @@ const char* tokenTypeToString(TokenType type) {
         case TokenType::While: return "While";
         case TokenType::For: return "For";
         case TokenType::Break: return "Break";
-        case TokenType::Continue: return "Continue";
         case TokenType::Return: return "Return";
+        case TokenType::Extern: return "Extern";
         case TokenType::Struct: return "Struct";
         case TokenType::Enum: return "Enum";
         case TokenType::Module: return "Module";

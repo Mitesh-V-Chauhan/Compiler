@@ -34,7 +34,7 @@ private:
 
     // Declarations
     std::unique_ptr<ASTNode> declaration();
-    std::unique_ptr<FunctionNode> functionDeclaration();
+    std::unique_ptr<FunctionNode> functionDeclaration(bool is_extern = false);
     std::unique_ptr<StructNode> structDeclaration();
     std::unique_ptr<EnumNode> enumDeclaration();
 

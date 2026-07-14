@@ -1,0 +1,6 @@
+extern fn printf(fmt: string, val: int) -> int;
+
+fn main() -> int {
+    printf("Hello from Nova! The number is %d\n", 42);
+    return 0;
+}
