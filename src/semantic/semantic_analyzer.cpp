@@ -74,7 +74,29 @@ void SemanticAnalyzer::analyze(ProgramNode& program) {
     dealloc_type->param_types.push_back(ptr_int_t);
     current_scope_->define({"dealloc", dealloc_type, false, false});
 
-    // Pass 1: Register all top-level types (Structs, Enums) and Functions
+    // Pass 1a: Register all Struct type names
+    for (auto& decl : program.declarations) {
+        if (auto* struct_decl = dynamic_cast<StructNode*>(decl.get())) {
+            auto struct_type = std::make_shared<Type>(TypeKind::Struct, std::string(struct_decl->name.lexeme));
+            defined_types_[struct_decl->name.lexeme] = struct_type;
+        }
+    }
+
+    // Pass 1b: Populate all Struct fields
+    for (auto& decl : program.declarations) {
+        if (auto* struct_decl = dynamic_cast<StructNode*>(decl.get())) {
+            auto it = defined_types_.find(struct_decl->name.lexeme);
+            if (it != defined_types_.end()) {
+                auto struct_type = it->second;
+                for (const auto& field : struct_decl->fields) {
+                    auto field_type = resolveType(field.type, field.name.location);
+                    struct_type->struct_fields.push_back({std::string(field.name.lexeme), field_type});
+                }
+            }
+        }
+    }
+
+    // Pass 1c: Register all Functions and Global Variables
     for (auto& decl : program.declarations) {
         if (auto* func = dynamic_cast<FunctionNode*>(decl.get())) {
             auto func_type = std::make_shared<Type>(TypeKind::Function, std::string(func->name.lexeme));
@@ -92,9 +114,6 @@ void SemanticAnalyzer::analyze(ProgramNode& program) {
             if (!current_scope_->define({func->name.lexeme, func_type, false})) {
                 diagnostics_.reportError(func->name.location, "Duplicate function declaration: " + std::string(func->name.lexeme));
             }
-        } else if (auto* struct_decl = dynamic_cast<StructNode*>(decl.get())) {
-            auto struct_type = std::make_shared<Type>(TypeKind::Struct, std::string(struct_decl->name.lexeme));
-            defined_types_[struct_decl->name.lexeme] = struct_type;
         } else if (auto* let_decl = dynamic_cast<LetStmt*>(decl.get())) {
             std::shared_ptr<Type> type = nullptr;
             if (let_decl->type_id) {
@@ -451,6 +470,7 @@ std::shared_ptr<Type> SemanticAnalyzer::resolveType(const TypeIdentifier& type_i
         auto derived_type = std::make_shared<Type>(type_id.is_array ? TypeKind::Array : base_type->kind);
         derived_type->name = base_type->name;
         derived_type->pointer_depth = type_id.pointer_depth;
+        derived_type->struct_fields = base_type->struct_fields;
         if (type_id.is_array) {
             derived_type->element_type = base_type;
         }
@@ -506,7 +526,7 @@ void SemanticAnalyzer::visit(BreakStmt& node) {}
 void SemanticAnalyzer::visit(ContinueStmt& node) {}
 void SemanticAnalyzer::visit(StructNode& node) {
     auto it = defined_types_.find(node.name.lexeme);
-    if (it != defined_types_.end()) {
+    if (it != defined_types_.end() && it->second->struct_fields.empty()) {
         auto struct_type = it->second;
         for (const auto& field : node.fields) {
             auto field_type = resolveType(field.type, field.name.location);

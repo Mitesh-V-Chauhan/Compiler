@@ -40,6 +40,7 @@ public:
     void visit(EnumNode& node) override;
 
     std::shared_ptr<Type> getNodeType(ASTNode* node);
+    std::shared_ptr<Type> resolveType(const TypeIdentifier& type_id, SourceLocation loc);
 
 private:
     Diagnostics& diagnostics_;
@@ -51,7 +52,6 @@ private:
 
     void enterScope();
     void leaveScope();
-    std::shared_ptr<Type> resolveType(const TypeIdentifier& type_id, SourceLocation loc);
     std::shared_ptr<Type> checkBinaryOp(TokenType op, std::shared_ptr<Type> left, std::shared_ptr<Type> right, SourceLocation loc);
     
     void setNodeType(ASTNode* node, std::shared_ptr<Type> type);

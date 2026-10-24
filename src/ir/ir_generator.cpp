@@ -92,6 +92,20 @@ void IRGenerator::visit(FunctionNode& node) {
     
     node.body->accept(*this);
     
+    // Ensure void or unterminated functions end with an implicit return
+    if (current_block_) {
+        bool has_terminal = false;
+        if (!current_block_->instructions.empty()) {
+            auto last_op = current_block_->instructions.back().op;
+            if (last_op == IROp::Return || last_op == IROp::Jump) {
+                has_terminal = true;
+            }
+        }
+        if (!has_terminal) {
+            emit(IROp::Return, {}, {IRValue::Type::None, ""});
+        }
+    }
+    
     current_func_ = nullptr;
     current_block_ = nullptr;
 }
@@ -124,7 +138,13 @@ void IRGenerator::visit(LetStmt& node) {
         emit(IROp::Assign, dest, init_val);
     } else {
         IRValue dest{IRValue::Type::Variable, std::string(node.identifier.lexeme)};
-        emit(IROp::Alloc, dest, {IRValue::Type::Constant, "8"});
+        int size = 8;
+        if (node.type_id && semantic_) {
+            auto type = semantic_->resolveType(*node.type_id, node.identifier.location);
+            size = MemoryLayout::getSize(type);
+        }
+        if (size <= 0) size = 8;
+        emit(IROp::Alloc, dest, {IRValue::Type::Constant, std::to_string(size)});
     }
 }
 
@@ -425,16 +445,22 @@ void IRGenerator::visit(StructAccessNode& node) {
     IRValue base = last_value_;
     
     int offset = 0;
+    bool is_pointer = false;
     if (semantic_) {
         auto obj_type = semantic_->getNodeType(node.object.get());
         if (obj_type && obj_type->kind == TypeKind::Struct) {
+            if (obj_type->pointer_depth > 0) is_pointer = true;
             auto layout = MemoryLayout::calculateStructLayout(obj_type->struct_fields);
             offset = layout.field_offsets[std::string(node.field.lexeme)];
         }
     }
     
     IRValue addr = newTemp();
-    emit(IROp::GetElementPtr, addr, base, {IRValue::Type::Constant, std::to_string(offset)});
+    if (is_pointer) {
+        emit(IROp::Add, addr, base, {IRValue::Type::Constant, std::to_string(offset)});
+    } else {
+        emit(IROp::GetElementPtr, addr, base, {IRValue::Type::Constant, std::to_string(offset)});
+    }
     
     if (lvalue_mode_) {
         last_value_ = addr;
@@ -446,11 +472,14 @@ void IRGenerator::visit(StructAccessNode& node) {
 }
 
 void IRGenerator::visit(IndexAccessNode& node) {
+    bool was_lvalue = lvalue_mode_;
+    lvalue_mode_ = false; // Target of indexing must be evaluated as rvalue to yield base pointer
     node.target->accept(*this);
     IRValue base = last_value_;
     
     node.index->accept(*this);
     IRValue idx = last_value_;
+    lvalue_mode_ = was_lvalue;
     
     int elem_size = 8;
     bool is_stack_array = false;

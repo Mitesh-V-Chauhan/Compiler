@@ -1,0 +1,107 @@
+struct Vector {
+    data: *int;
+    size: int;
+    capacity: int;
+}
+
+let total_vectors_created: int = 0;
+
+fn vector_init(v: *Vector, initial_cap: int) {
+    v.data = alloc(initial_cap * 8);
+    v.size = 0;
+    v.capacity = initial_cap;
+    total_vectors_created = total_vectors_created + 1;
+}
+
+fn vector_push(v: *Vector, value: int) {
+    if (v.size == v.capacity) {
+        let new_cap: int = v.capacity * 2;
+        let new_data: *int = alloc(new_cap * 8);
+        
+        let i: int = 0;
+        while (i < v.size) {
+            new_data[i] = v.data[i];
+            i = i + 1;
+        }
+        
+        dealloc(v.data);
+        v.data = new_data;
+        v.capacity = new_cap;
+    }
+    
+    v.data[v.size] = value;
+    v.size = v.size + 1;
+}
+
+fn vector_sort(v: *Vector) {
+    let n: int = v.size;
+    let i: int = 0;
+    while (i < n) {
+        let j: int = 0;
+        while (j < n - i - 1) {
+            if (v.data[j] > v.data[j + 1]) {
+                let temp: int = v.data[j];
+                v.data[j] = v.data[j + 1];
+                v.data[j + 1] = temp;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+}
+
+fn vector_print(v: *Vector) {
+    let i: int = 0;
+    while (i < v.size) {
+        print_int(v.data[i]);
+        i = i + 1;
+    }
+}
+
+fn vector_free(v: *Vector) {
+    dealloc(v.data);
+    v.size = 0;
+    v.capacity = 0;
+}
+
+fn main() -> int {
+    println("========================================");
+    println("      Nova Functional v1.0 Capstone     ");
+    println(" Dynamic Vector & Heap Sort Showcase    ");
+    println("========================================");
+
+    let my_vec: Vector;
+    vector_init(&my_vec, 2);
+
+    println("Pushing 8 elements to dynamic vector (auto-resizing heap)...");
+    vector_push(&my_vec, 42);
+    vector_push(&my_vec, 17);
+    vector_push(&my_vec, 88);
+    vector_push(&my_vec, 5);
+    vector_push(&my_vec, 23);
+    vector_push(&my_vec, 91);
+    vector_push(&my_vec, 12);
+    vector_push(&my_vec, 64);
+
+    print("Vector size: ");
+    print_int(my_vec.size);
+    print("Vector capacity: ");
+    print_int(my_vec.capacity);
+
+    println("\nUnsorted elements:");
+    vector_print(&my_vec);
+
+    println("\nSorting on heap buffer using Bubble Sort...");
+    vector_sort(&my_vec);
+
+    println("Sorted elements in ascending order:");
+    vector_print(&my_vec);
+
+    print("\nTotal vectors managed: ");
+    print_int(total_vectors_created);
+
+    vector_free(&my_vec);
+    println("Vector successfully destroyed and heap freed!");
+    println("========================================");
+    return 0;
+}
