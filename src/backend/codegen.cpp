@@ -22,6 +22,24 @@ void CodeGen::generate(const IRProgram& program) {
             out_ << "    .asciz \"" << escapeString(str.second) << "\"\n";
         }
     }
+
+    if (!program.globals.empty()) {
+        bool has_data = false;
+        for (const auto& g : program.globals) {
+            if (g.has_init) {
+                if (!has_data) {
+                    out_ << ".data\n";
+                    has_data = true;
+                }
+                out_ << ".globl _" << g.name << "\n";
+                out_ << ".p2align 3\n";
+                out_ << "_" << g.name << ":\n";
+                out_ << "    .quad " << g.init_val << "\n";
+            } else {
+                out_ << ".comm _" << g.name << ", " << g.size << ", 3\n";
+            }
+        }
+    }
 }
 
 std::string CodeGen::escapeString(const std::string& str) {
@@ -57,6 +75,8 @@ std::string CodeGen::loadValue(const IRValue& val, const std::string& reg) {
         out_ << "    movq " << offset << "(%rbp), " << reg << "\n";
     } else if (val.type == IRValue::Type::Label) {
         out_ << "    leaq " << val.name << "(%rip), " << reg << "\n";
+    } else if (val.type == IRValue::Type::Global) {
+        out_ << "    movq _" << val.name << "(%rip), " << reg << "\n";
     }
     return reg;
 }
@@ -65,6 +85,8 @@ std::string CodeGen::loadAddress(const IRValue& val, const std::string& reg) {
     if (val.type == IRValue::Type::Variable || val.type == IRValue::Type::Temp) {
         int offset = getStackOffset(val.name);
         out_ << "    leaq " << offset << "(%rbp), " << reg << "\n";
+    } else if (val.type == IRValue::Type::Global) {
+        out_ << "    leaq _" << val.name << "(%rip), " << reg << "\n";
     }
     return reg;
 }
@@ -73,6 +95,8 @@ void CodeGen::storeValue(const IRValue& val, const std::string& reg) {
     if (val.type == IRValue::Type::Variable || val.type == IRValue::Type::Temp) {
         int offset = getStackOffset(val.name);
         out_ << "    movq " << reg << ", " << offset << "(%rbp)\n";
+    } else if (val.type == IRValue::Type::Global) {
+        out_ << "    movq " << reg << ", _" << val.name << "(%rip)\n";
     }
 }
 

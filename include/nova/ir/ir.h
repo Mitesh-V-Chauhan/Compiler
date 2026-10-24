@@ -17,7 +17,7 @@ enum class IROp {
 };
 
 struct IRValue {
-    enum class Type { Temp, Variable, Constant, Label, None } type = Type::None;
+    enum class Type { Temp, Variable, Constant, Label, Global, None } type = Type::None;
     std::string name;
     
     std::string toString() const { return name; }
@@ -46,10 +46,18 @@ public:
     void dump() const;
 };
 
+struct IRGlobalVar {
+    std::string name;
+    int size = 8;
+    int64_t init_val = 0;
+    bool has_init = false;
+};
+
 class IRProgram {
 public:
     std::vector<IRFunction> functions;
     std::vector<std::pair<std::string, std::string>> strings;
+    std::vector<IRGlobalVar> globals;
     
     void dump() const;
 };

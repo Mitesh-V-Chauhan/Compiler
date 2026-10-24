@@ -63,6 +63,27 @@ void SemanticAnalyzer::analyze(ProgramNode& program) {
         } else if (auto* struct_decl = dynamic_cast<StructNode*>(decl.get())) {
             auto struct_type = std::make_shared<Type>(TypeKind::Struct, std::string(struct_decl->name.lexeme));
             defined_types_[struct_decl->name.lexeme] = struct_type;
+        } else if (auto* let_decl = dynamic_cast<LetStmt*>(decl.get())) {
+            std::shared_ptr<Type> type = nullptr;
+            if (let_decl->type_id) {
+                type = resolveType(*let_decl->type_id, let_decl->identifier.location);
+            }
+            if (let_decl->initializer) {
+                let_decl->initializer->accept(*this);
+                auto init_type = getNodeType(let_decl->initializer.get());
+                if (!type) {
+                    type = init_type;
+                } else if (init_type && init_type->kind != TypeKind::Unknown && *type != *init_type) {
+                    diagnostics_.reportError(let_decl->initializer->location, "Type mismatch in global variable initialization.");
+                }
+            }
+            if (!type) {
+                diagnostics_.reportError(let_decl->identifier.location, "Cannot infer type for global variable.");
+                type = Type::getUnknown();
+            }
+            if (!current_scope_->define({let_decl->identifier.lexeme, type, true, true})) {
+                diagnostics_.reportError(let_decl->identifier.location, "Duplicate global variable declaration: " + std::string(let_decl->identifier.lexeme));
+            }
         }
     }
     
@@ -108,6 +129,11 @@ void SemanticAnalyzer::visit(BlockStmt& node) {
 }
 
 void SemanticAnalyzer::visit(LetStmt& node) {
+    if (current_scope_->parent == nullptr) {
+        // Global variables are already analyzed and registered in Pass 1
+        return;
+    }
+
     std::shared_ptr<Type> type = nullptr;
     
     if (node.initializer) {

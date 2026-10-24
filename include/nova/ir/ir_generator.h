@@ -4,6 +4,7 @@
 #include "nova/ast/expressions.h"
 #include "nova/ast/statements.h"
 #include <string>
+#include <unordered_set>
 
 namespace nova {
 
@@ -43,6 +44,8 @@ private:
     IRProgram program_;
     IRFunction* current_func_ = nullptr;
     BasicBlock* current_block_ = nullptr;
+    
+    std::unordered_set<std::string> global_names_;
     
     bool lvalue_mode_ = false;
     

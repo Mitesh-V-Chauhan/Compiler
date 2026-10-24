@@ -64,3 +64,17 @@ TEST(SemanticTest, DuplicateDeclaration) {
     std::string source = "fn main() { let x = 10; let x = 20; }";
     EXPECT_FALSE(analyzeCode(source));
 }
+
+TEST(SemanticTest, GlobalVariables) {
+    std::string source = R"(
+        let global_counter: int = 42;
+        fn increment() -> int {
+            global_counter = global_counter + 1;
+            return global_counter;
+        }
+        fn main() -> int {
+            return increment();
+        }
+    )";
+    EXPECT_TRUE(analyzeCode(source));
+}

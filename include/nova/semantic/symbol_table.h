@@ -10,6 +10,7 @@ struct Symbol {
     std::string_view name;
     std::shared_ptr<Type> type;
     bool is_mutable = false;
+    bool is_global = false;
 };
 
 class Scope {

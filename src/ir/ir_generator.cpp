@@ -40,6 +40,35 @@ void IRGenerator::enterBlock(const std::string& label) {
 
 void IRGenerator::visit(ProgramNode& node) {
     for (auto& decl : node.declarations) {
+        if (auto* let = dynamic_cast<LetStmt*>(decl.get())) {
+            std::string name(let->identifier.lexeme);
+            global_names_.insert(name);
+            
+            IRGlobalVar gvar;
+            gvar.name = name;
+            gvar.size = 8;
+            gvar.has_init = false;
+            gvar.init_val = 0;
+            
+            if (let->initializer) {
+                if (auto* lit = dynamic_cast<LiteralNode*>(let->initializer.get())) {
+                    if (lit->token.type == TokenType::IntegerLiteral) {
+                        gvar.init_val = std::stoll(std::string(lit->token.lexeme));
+                        gvar.has_init = true;
+                    } else if (lit->token.type == TokenType::True) {
+                        gvar.init_val = 1;
+                        gvar.has_init = true;
+                    } else if (lit->token.type == TokenType::False) {
+                        gvar.init_val = 0;
+                        gvar.has_init = true;
+                    }
+                }
+            }
+            program_.globals.push_back(gvar);
+        }
+    }
+
+    for (auto& decl : node.declarations) {
         decl->accept(*this);
     }
 }
@@ -74,6 +103,11 @@ void IRGenerator::visit(BlockStmt& node) {
 }
 
 void IRGenerator::visit(LetStmt& node) {
+    if (!current_func_) {
+        // Global variables are collected and initialized at the program level
+        return;
+    }
+
     if (node.initializer) {
         node.initializer->accept(*this);
         IRValue init_val = last_value_;
@@ -317,7 +351,12 @@ void IRGenerator::visit(LiteralNode& node) {
 }
 
 void IRGenerator::visit(IdentifierNode& node) {
-    last_value_ = {IRValue::Type::Variable, std::string(node.token.lexeme)};
+    std::string name(node.token.lexeme);
+    if (global_names_.find(name) != global_names_.end()) {
+        last_value_ = {IRValue::Type::Global, name};
+    } else {
+        last_value_ = {IRValue::Type::Variable, name};
+    }
 }
 
 void IRGenerator::visit(CallNode& node) {

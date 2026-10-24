@@ -1,0 +1,15 @@
+extern fn printf(fmt: string, val: int) -> int;
+
+let counter: int = 10;
+
+fn add_to_counter(amount: int) -> int {
+    counter = counter + amount;
+    return counter;
+}
+
+fn main() -> int {
+    printf("Initial counter: %d\n", counter);
+    add_to_counter(32);
+    printf("Updated counter: %d\n", counter);
+    return counter;
+}
