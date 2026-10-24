@@ -1,0 +1,34 @@
+extern fn malloc(size: int) -> *int;
+extern fn free(ptr: *int) -> void;
+extern fn printf(fmt: string, val: int) -> int;
+
+fn main() -> int {
+    let size: int = 5;
+    let arr: *int = malloc(size * 8);
+
+    // Populate array using indexing arr[i]
+    let i: int = 0;
+    while (i < size) {
+        arr[i] = (i + 1) * 10;
+        i = i + 1;
+    }
+
+    // Read array using indexing arr[i]
+    let sum: int = 0;
+    i = 0;
+    while (i < size) {
+        printf("arr[%d] = ", i);
+        printf("%d\n", arr[i]);
+        sum = sum + arr[i];
+        i = i + 1;
+    }
+
+    printf("Sum of heap array: %d\n", sum);
+
+    // Test pointer arithmetic: arr + 2
+    let mid_ptr: *int = arr + 2;
+    printf("Value at arr + 2 dereferenced: %d\n", *mid_ptr);
+
+    free(arr);
+    return sum;
+}

@@ -206,7 +206,43 @@ std::shared_ptr<Type> SemanticAnalyzer::checkBinaryOp(TokenType op, std::shared_
     
     switch (op) {
         case TokenType::Plus:
+            // Pointer + int
+            if (left->pointer_depth > 0 && right->kind == TypeKind::Int && right->pointer_depth == 0) {
+                return left;
+            }
+            // int + Pointer
+            if (right->pointer_depth > 0 && left->kind == TypeKind::Int && left->pointer_depth == 0) {
+                return right;
+            }
+            if (left->kind != TypeKind::Int && left->kind != TypeKind::Float) {
+                diagnostics_.reportError(loc, "Arithmetic operations require numeric types.");
+                return Type::getUnknown();
+            }
+            if (*left != *right) {
+                diagnostics_.reportError(loc, "Type mismatch in arithmetic operation.");
+                return Type::getUnknown();
+            }
+            return left;
+
         case TokenType::Minus:
+            // Pointer - int
+            if (left->pointer_depth > 0 && right->kind == TypeKind::Int && right->pointer_depth == 0) {
+                return left;
+            }
+            // Pointer - Pointer
+            if (left->pointer_depth > 0 && right->pointer_depth > 0 && *left == *right) {
+                return Type::getInt();
+            }
+            if (left->kind != TypeKind::Int && left->kind != TypeKind::Float) {
+                diagnostics_.reportError(loc, "Arithmetic operations require numeric types.");
+                return Type::getUnknown();
+            }
+            if (*left != *right) {
+                diagnostics_.reportError(loc, "Type mismatch in arithmetic operation.");
+                return Type::getUnknown();
+            }
+            return left;
+
         case TokenType::Star:
         case TokenType::Slash:
         case TokenType::Percent:
@@ -408,6 +444,31 @@ void SemanticAnalyzer::visit(StructAccessNode& node) {
         diagnostics_.reportError(node.object->location, "Cannot access field of non-struct type.");
     }
     setNodeType(&node, Type::getUnknown());
+}
+
+void SemanticAnalyzer::visit(IndexAccessNode& node) {
+    node.target->accept(*this);
+    node.index->accept(*this);
+    
+    auto target_type = getNodeType(node.target.get());
+    auto index_type = getNodeType(node.index.get());
+    
+    if (index_type->kind != TypeKind::Int && index_type->kind != TypeKind::Unknown) {
+        diagnostics_.reportError(node.location, "Array index must be an integer.");
+    }
+    
+    if (target_type->pointer_depth > 0) {
+        auto elem_type = std::make_shared<Type>(target_type->kind, target_type->name);
+        elem_type->pointer_depth = target_type->pointer_depth - 1;
+        setNodeType(&node, elem_type);
+    } else if (target_type->kind == TypeKind::Array) {
+        setNodeType(&node, target_type->element_type ? target_type->element_type : Type::getInt());
+    } else {
+        if (target_type->kind != TypeKind::Unknown) {
+            diagnostics_.reportError(node.location, "Cannot index into non-array and non-pointer type.");
+        }
+        setNodeType(&node, Type::getUnknown());
+    }
 }
 void SemanticAnalyzer::visit(BreakStmt& node) {}
 void SemanticAnalyzer::visit(ContinueStmt& node) {}

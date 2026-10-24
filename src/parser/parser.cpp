@@ -435,6 +435,10 @@ std::unique_ptr<Expression> Parser::callOrAccess() {
         } else if (match({TokenType::Dot})) {
             Token name = consume(TokenType::Identifier, "Expected property name after '.'.");
             expr = std::make_unique<StructAccessNode>(std::move(expr), name);
+        } else if (match({TokenType::LBracket})) {
+            auto index = expression();
+            consume(TokenType::RBracket, "Expected ']' after array index.");
+            expr = std::make_unique<IndexAccessNode>(std::move(expr), std::move(index), previous().location);
         } else {
             break;
         }

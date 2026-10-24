@@ -248,6 +248,8 @@ void IRGenerator::visit(BinaryExpression& node) {
         
         if (dynamic_cast<StructAccessNode*>(node.left.get())) {
             emit(IROp::Store, {}, left, right); // Store right into address left
+        } else if (dynamic_cast<IndexAccessNode*>(node.left.get())) {
+            emit(IROp::Store, {}, left, right); // Store right into address left
         } else if (auto unary = dynamic_cast<UnaryExpression*>(node.left.get()); unary && unary->op.type == TokenType::Star) {
             emit(IROp::Store, {}, left, right); // Store right into pointer left
         } else {
@@ -262,6 +264,48 @@ void IRGenerator::visit(BinaryExpression& node) {
     
     node.right->accept(*this);
     IRValue right = last_value_;
+    
+    if (node.op.type == TokenType::Plus || node.op.type == TokenType::Minus) {
+        bool left_is_ptr = false;
+        bool right_is_ptr = false;
+        int elem_size = 8;
+        if (semantic_) {
+            auto lt = semantic_->getNodeType(node.left.get());
+            auto rt = semantic_->getNodeType(node.right.get());
+            if (lt && lt->pointer_depth > 0) left_is_ptr = true;
+            if (rt && rt->pointer_depth > 0) right_is_ptr = true;
+            if (left_is_ptr && lt) {
+                if (lt->pointer_depth > 1) elem_size = 8;
+                else {
+                    auto deref = std::make_shared<Type>(lt->kind, lt->name);
+                    elem_size = MemoryLayout::getSize(deref);
+                }
+            } else if (right_is_ptr && rt) {
+                if (rt->pointer_depth > 1) elem_size = 8;
+                else {
+                    auto deref = std::make_shared<Type>(rt->kind, rt->name);
+                    elem_size = MemoryLayout::getSize(deref);
+                }
+            }
+        }
+        if (elem_size <= 0) elem_size = 8;
+
+        if (left_is_ptr && !right_is_ptr) {
+            IRValue offset = newTemp();
+            emit(IROp::Mul, offset, right, {IRValue::Type::Constant, std::to_string(elem_size)});
+            IRValue dest = newTemp();
+            emit(node.op.type == TokenType::Plus ? IROp::Add : IROp::Sub, dest, left, offset);
+            last_value_ = dest;
+            return;
+        } else if (right_is_ptr && !left_is_ptr && node.op.type == TokenType::Plus) {
+            IRValue offset = newTemp();
+            emit(IROp::Mul, offset, left, {IRValue::Type::Constant, std::to_string(elem_size)});
+            IRValue dest = newTemp();
+            emit(IROp::Add, dest, right, offset);
+            last_value_ = dest;
+            return;
+        }
+    }
     
     IROp op = IROp::Add;
     switch (node.op.type) {
@@ -391,6 +435,53 @@ void IRGenerator::visit(StructAccessNode& node) {
     
     IRValue addr = newTemp();
     emit(IROp::GetElementPtr, addr, base, {IRValue::Type::Constant, std::to_string(offset)});
+    
+    if (lvalue_mode_) {
+        last_value_ = addr;
+    } else {
+        IRValue val = newTemp();
+        emit(IROp::Load, val, addr);
+        last_value_ = val;
+    }
+}
+
+void IRGenerator::visit(IndexAccessNode& node) {
+    node.target->accept(*this);
+    IRValue base = last_value_;
+    
+    node.index->accept(*this);
+    IRValue idx = last_value_;
+    
+    int elem_size = 8;
+    bool is_stack_array = false;
+    if (semantic_) {
+        auto target_type = semantic_->getNodeType(node.target.get());
+        if (target_type) {
+            if (target_type->kind == TypeKind::Array) {
+                is_stack_array = true;
+                if (target_type->element_type) {
+                    elem_size = MemoryLayout::getSize(target_type->element_type);
+                }
+            } else if (target_type->pointer_depth > 1) {
+                elem_size = 8;
+            } else if (target_type->pointer_depth == 1) {
+                auto deref = std::make_shared<Type>(target_type->kind, target_type->name);
+                elem_size = MemoryLayout::getSize(deref);
+            }
+        }
+    }
+    if (elem_size <= 0) elem_size = 8;
+    
+    IRValue scaled_offset = newTemp();
+    emit(IROp::Mul, scaled_offset, idx, {IRValue::Type::Constant, std::to_string(elem_size)});
+    
+    IRValue addr = newTemp();
+    if (is_stack_array) {
+        emit(IROp::GetElementPtr, addr, base, scaled_offset);
+    } else {
+        // Pointer / heap buffer: base is already a memory address
+        emit(IROp::Add, addr, base, scaled_offset);
+    }
     
     if (lvalue_mode_) {
         last_value_ = addr;

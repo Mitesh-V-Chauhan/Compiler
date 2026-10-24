@@ -78,3 +78,17 @@ TEST(SemanticTest, GlobalVariables) {
     )";
     EXPECT_TRUE(analyzeCode(source));
 }
+
+TEST(SemanticTest, PointerIndexingAndArithmetic) {
+    std::string source = R"(
+        extern fn malloc(size: int) -> *int;
+        fn main() -> int {
+            let p: *int = malloc(40);
+            p[0] = 10;
+            let p2: *int = p + 2;
+            let val: int = *p2;
+            return p[0] + val;
+        }
+    )";
+    EXPECT_TRUE(analyzeCode(source));
+}

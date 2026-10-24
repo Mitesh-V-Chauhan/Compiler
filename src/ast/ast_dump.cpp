@@ -79,6 +79,14 @@ void ASTDumper::visit(StructAccessNode& node) {
     indent_level_--;
 }
 
+void ASTDumper::visit(IndexAccessNode& node) {
+    output_ += "IndexAccess\n";
+    indent_level_++;
+    indent(); node.target->accept(*this);
+    indent(); node.index->accept(*this);
+    indent_level_--;
+}
+
 void ASTDumper::visit(LetStmt& node) {
     output_ += "LetStmt [" + std::string(node.identifier.lexeme) + "]\n";
     indent_level_++;

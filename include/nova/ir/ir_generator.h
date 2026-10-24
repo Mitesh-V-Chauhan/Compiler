@@ -24,6 +24,7 @@ public:
     void visit(CallNode& node) override;
     void visit(ArrayNode& node) override;
     void visit(StructAccessNode& node) override;
+    void visit(IndexAccessNode& node) override;
 
     void visit(LetStmt& node) override;
     void visit(IfStmt& node) override;

@@ -10,6 +10,7 @@ class IdentifierNode;
 class CallNode;
 class ArrayNode;
 class StructAccessNode;
+class IndexAccessNode;
 
 class LetStmt;
 class IfStmt;
@@ -39,6 +40,7 @@ public:
     virtual void visit(CallNode& node) = 0;
     virtual void visit(ArrayNode& node) = 0;
     virtual void visit(StructAccessNode& node) = 0;
+    virtual void visit(IndexAccessNode& node) = 0;
 
     // Statements
     virtual void visit(LetStmt& node) = 0;

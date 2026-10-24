@@ -55,3 +55,9 @@ TEST(ParserTest, SyntaxError) {
     std::string dump = parseAndDump("let x: int = ;"); // missing initializer
     EXPECT_EQ(dump, "ERROR");
 }
+
+TEST(ParserTest, IndexAccess) {
+    std::string dump = parseAndDump("arr[5];");
+    EXPECT_NE(dump, "ERROR");
+    EXPECT_TRUE(dump.find("IndexAccess") != std::string::npos);
+}

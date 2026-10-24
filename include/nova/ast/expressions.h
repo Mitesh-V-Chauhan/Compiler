@@ -71,4 +71,14 @@ public:
     void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
 
+class IndexAccessNode : public Expression {
+public:
+    std::unique_ptr<Expression> target;
+    std::unique_ptr<Expression> index;
+    
+    IndexAccessNode(std::unique_ptr<Expression> t, std::unique_ptr<Expression> idx, SourceLocation loc)
+        : target(std::move(t)), index(std::move(idx)) { location = loc; }
+    void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
+};
+
 } // namespace nova
