@@ -42,6 +42,38 @@ std::shared_ptr<Type> SemanticAnalyzer::getNodeType(ASTNode* node) {
 void SemanticAnalyzer::analyze(ProgramNode& program) {
     enterScope(); // Global scope
     
+    // Register Standard Prelude built-in functions
+    auto void_t = Type::getVoid();
+    auto string_t = Type::getString();
+    auto int_t = Type::getInt();
+    auto ptr_int_t = std::make_shared<Type>(TypeKind::Int, "int");
+    ptr_int_t->pointer_depth = 1;
+
+    auto print_type = std::make_shared<Type>(TypeKind::Function, "print");
+    print_type->return_type = void_t;
+    print_type->param_types.push_back(string_t);
+    current_scope_->define({"print", print_type, false, false});
+
+    auto println_type = std::make_shared<Type>(TypeKind::Function, "println");
+    println_type->return_type = void_t;
+    println_type->param_types.push_back(string_t);
+    current_scope_->define({"println", println_type, false, false});
+
+    auto print_int_type = std::make_shared<Type>(TypeKind::Function, "print_int");
+    print_int_type->return_type = void_t;
+    print_int_type->param_types.push_back(int_t);
+    current_scope_->define({"print_int", print_int_type, false, false});
+
+    auto alloc_type = std::make_shared<Type>(TypeKind::Function, "alloc");
+    alloc_type->return_type = ptr_int_t;
+    alloc_type->param_types.push_back(int_t);
+    current_scope_->define({"alloc", alloc_type, false, false});
+
+    auto dealloc_type = std::make_shared<Type>(TypeKind::Function, "dealloc");
+    dealloc_type->return_type = void_t;
+    dealloc_type->param_types.push_back(ptr_int_t);
+    current_scope_->define({"dealloc", dealloc_type, false, false});
+
     // Pass 1: Register all top-level types (Structs, Enums) and Functions
     for (auto& decl : program.declarations) {
         if (auto* func = dynamic_cast<FunctionNode*>(decl.get())) {

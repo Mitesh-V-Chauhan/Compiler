@@ -1,5 +1,6 @@
 #include "nova/backend/codegen.h"
 #include <stdexcept>
+#include <unordered_set>
 
 namespace nova {
 
@@ -11,12 +12,59 @@ void CodeGen::generate(const IRProgram& program) {
         generateFunction(func);
     }
     
-    if (!program.strings.empty()) {
+    // Standard Prelude Runtime Helpers
+    std::unordered_set<std::string> user_funcs;
+    for (const auto& func : program.functions) {
+        user_funcs.insert(func.name);
+    }
+
+    out_ << ".text\n";
+    if (user_funcs.find("print") == user_funcs.end()) {
+        out_ << ".globl _print\n_print:\n"
+             << "    pushq %rbp\n    movq %rsp, %rbp\n"
+             << "    movq %rdi, %rsi\n"
+             << "    leaq .L.prelude_str(%rip), %rdi\n"
+             << "    xor %eax, %eax\n"
+             << "    call _printf\n"
+             << "    movq %rbp, %rsp\n    popq %rbp\n    ret\n";
+    }
+    if (user_funcs.find("println") == user_funcs.end()) {
+        out_ << ".globl _println\n_println:\n"
+             << "    pushq %rbp\n    movq %rsp, %rbp\n"
+             << "    call _puts\n"
+             << "    movq %rbp, %rsp\n    popq %rbp\n    ret\n";
+    }
+    if (user_funcs.find("print_int") == user_funcs.end()) {
+        out_ << ".globl _print_int\n_print_int:\n"
+             << "    pushq %rbp\n    movq %rsp, %rbp\n"
+             << "    movq %rdi, %rsi\n"
+             << "    leaq .L.prelude_int(%rip), %rdi\n"
+             << "    xor %eax, %eax\n"
+             << "    call _printf\n"
+             << "    movq %rbp, %rsp\n    popq %rbp\n    ret\n";
+    }
+    if (user_funcs.find("alloc") == user_funcs.end()) {
+        out_ << ".globl _alloc\n_alloc:\n"
+             << "    pushq %rbp\n    movq %rsp, %rbp\n"
+             << "    call _malloc\n"
+             << "    movq %rbp, %rsp\n    popq %rbp\n    ret\n";
+    }
+    if (user_funcs.find("dealloc") == user_funcs.end()) {
+        out_ << ".globl _dealloc\n_dealloc:\n"
+             << "    pushq %rbp\n    movq %rsp, %rbp\n"
+             << "    call _free\n"
+             << "    movq %rbp, %rsp\n    popq %rbp\n    ret\n";
+    }
+
 #ifdef __APPLE__
-        out_ << ".section __TEXT,__cstring,cstring_literals\n";
+    out_ << ".section __TEXT,__cstring,cstring_literals\n";
 #else
-        out_ << ".section .rodata\n";
+    out_ << ".section .rodata\n";
 #endif
+    out_ << ".L.prelude_str:\n    .asciz \"%s\"\n";
+    out_ << ".L.prelude_int:\n    .asciz \"%lld\\n\"\n";
+
+    if (!program.strings.empty()) {
         for (const auto& str : program.strings) {
             out_ << str.first << ":\n";
             out_ << "    .asciz \"" << escapeString(str.second) << "\"\n";

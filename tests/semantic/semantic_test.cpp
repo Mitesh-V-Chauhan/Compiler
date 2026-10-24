@@ -92,3 +92,17 @@ TEST(SemanticTest, PointerIndexingAndArithmetic) {
     )";
     EXPECT_TRUE(analyzeCode(source));
 }
+
+TEST(SemanticTest, StandardPreludeBuiltins) {
+    std::string source = R"(
+        fn main() {
+            println("Hello, World!");
+            print("Number: ");
+            print_int(100);
+            let buf: *int = alloc(16);
+            buf[0] = 42;
+            dealloc(buf);
+        }
+    )";
+    EXPECT_TRUE(analyzeCode(source));
+}

@@ -1,0 +1,21 @@
+fn main() -> int {
+    println("=== Nova Standard Prelude Demo ===");
+    print("Printing without newline: ");
+    println("OK!");
+
+    let count: int = 42;
+    print("The lucky number is: ");
+    print_int(count);
+
+    // Using alloc & dealloc without any extern boilerplate
+    let mem: *int = alloc(24);
+    mem[0] = 100;
+    mem[1] = 200;
+    mem[2] = mem[0] + mem[1];
+    print("Dynamically calculated: ");
+    print_int(mem[2]);
+    dealloc(mem);
+
+    println("Memory successfully deallocated!");
+    return 0;
+}
